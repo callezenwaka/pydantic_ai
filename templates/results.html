@@ -1,0 +1,223 @@
+<!-- # templates/results.html -->
+{% extends "base.html" %}
+
+{% block title %}Processing Results - Document AI Demo{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- Results Summary -->
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-check-circle"></i>
+                    Processing Results
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>File:</strong> {{ result.uploaded_file }}<br>
+                        <strong>Size:</strong> {{ "%.1f"|format(result.file_size / 1024) }} KB<br>
+                        <strong>Type:</strong> {{ result.file_type }}<br>
+                        <strong>Processing Time:</strong> {{ result.processing_time }}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Document Type:</strong> 
+                        <span class="badge bg-primary">{{ result.document_type.title() }}</span><br>
+                        
+                        <strong>Confidence Level:</strong>
+                        {% if result.confidence_level == 'high' %}
+                            <span class="badge bg-success">{{ result.confidence_level.title() }}</span>
+                        {% elif result.confidence_level == 'medium' %}
+                            <span class="badge bg-warning">{{ result.confidence_level.title() }}</span>
+                        {% else %}
+                            <span class="badge bg-danger">{{ result.confidence_level.title() }}</span>
+                        {% endif %}
+                        <br>
+                        
+                        <strong>Overall Confidence:</strong> {{ "%.1f"|format(result.overall_confidence * 100) }}%<br>
+                        
+                        <strong>Human Review:</strong>
+                        {% if result.needs_human_review %}
+                            <span class="badge bg-warning">Required</span>
+                        {% else %}
+                            <span class="badge bg-success">Not Required</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Confidence Bar -->
+                <div class="mb-3">
+                    <label class="form-label">Confidence Score</label>
+                    <div class="progress" style="height: 25px;">
+                        {% set confidence_percent = (result.overall_confidence * 100)|int %}
+                        {% if confidence_percent >= 80 %}
+                            {% set bar_class = 'bg-success' %}
+                        {% elif confidence_percent >= 60 %}
+                            {% set bar_class = 'bg-warning' %}
+                        {% else %}
+                            {% set bar_class = 'bg-danger' %}
+                        {% endif %}
+                        <div class="progress-bar {{ bar_class }}" role="progressbar" 
+                             style="width: {{ confidence_percent }}%" 
+                             aria-valuenow="{{ confidence_percent }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ confidence_percent }}%
+                        </div>
+                    </div>
+                </div>
+
+                {% if result.needs_human_review %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    <strong>Human Review Required:</strong> 
+                    The confidence level is below the threshold. Please review the extracted data carefully.
+                </div>
+                {% else %}
+                <div class="alert alert-success">
+                    <i class="bi bi-check-circle"></i>
+                    <strong>Ready for Automation:</strong> 
+                    High confidence extraction - can be processed automatically.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Extracted Data -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-database"></i>
+                    Extracted Structured Data
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if result.extracted_data and 'error' not in result.extracted_data %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Field</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for key, value in result.extracted_data.items() %}
+                                    {% if key != 'raw_response' %}
+                                    <tr>
+                                        <td><strong>{{ key.replace('_', ' ').title() }}</strong></td>
+                                        <td>
+                                            {% if value is string and value|length > 100 %}
+                                                {{ value[0:100] }}...
+                                            {% else %}
+                                                {{ value }}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <strong>Extraction Error:</strong> 
+                        {{ result.extracted_data.get('error', 'Unknown error occurred during data extraction') }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card mt-4">
+            <div class="card-body text-center">
+                <a href="/" class="btn btn-primary">
+                    <i class="bi bi-cloud-upload"></i>
+                    Process Another Document
+                </a>
+                <button class="btn btn-secondary" onclick="downloadResults()">
+                    <i class="bi bi-download"></i>
+                    Download Results (JSON)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Raw JSON Data -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-code"></i>
+                    Raw JSON Data
+                </h6>
+            </div>
+            <div class="card-body">
+                <pre style="font-size: 0.8rem; max-height: 300px; overflow-y: auto;"><code>{{ extracted_data_json }}</code></pre>
+            </div>
+        </div>
+
+        <!-- Processing Steps -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-list-check"></i>
+                    Processing Steps
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-check-circle text-success"></i>
+                            File Upload
+                        </span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-check-circle text-success"></i>
+                            Text Extraction (OCR)
+                        </span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-check-circle text-success"></i>
+                            ML Classification
+                        </span>
+                        <small class="text-muted">{{ "%.1f"|format(result.ml_confidence * 100) }}%</small>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-check-circle text-success"></i>
+                            GPT-4 Extraction
+                        </span>
+                    </div>
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>
+                            <i class="bi bi-check-circle text-success"></i>
+                            Confidence Assessment
+                        </span>
+                        <small class="text-muted">{{ "%.1f"|format(result.overall_confidence * 100) }}%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function downloadResults() {
+    const results = {{ result|tojson }};
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(results, null, 2));
+    const downloadAnchorNode = document.createElement('a');
+    downloadAnchorNode.setAttribute("href", dataStr);
+    downloadAnchorNode.setAttribute("download", "document_ai_results.json");
+    document.body.appendChild(downloadAnchorNode);
+    downloadAnchorNode.click();
+    downloadAnchorNode.remove();
+}
+</script>
+{% endblock %}

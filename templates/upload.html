@@ -1,0 +1,133 @@
+<!-- # templates/upload.html -->
+{% extends "base.html" %}
+
+{% block title %}Upload Document - Document AI Demo{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-cloud-upload"></i>
+                    Upload Document for AI Processing
+                </h4>
+            </div>
+            <div class="card-body">
+                {% if error %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    {{ error }}
+                </div>
+                {% endif %}
+
+                <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Select Document</label>
+                        <input type="file" class="form-control" id="file" name="file" 
+                               accept=".txt,.pdf,.png,.jpg,.jpeg" required>
+                        <div class="form-text">
+                            Supported formats: TXT, PDF, PNG, JPG, JPEG
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="process_type" class="form-label">Processing Type</label>
+                        <select class="form-select" id="process_type" name="process_type">
+                            <option value="auto">Auto-detect document type</option>
+                            <option value="invoice">Force process as Invoice</option>
+                            <option value="contract">Force process as Contract</option>
+                            <option value="form">Force process as Form</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-cpu"></i>
+                            Process with AI
+                        </button>
+                    </div>
+                </form>
+
+                <div id="processing" class="text-center mt-3" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Processing...</span>
+                    </div>
+                    <p class="mt-2">Processing document with AI...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Demo Section -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    Try the Demo
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>No file to upload? Try these sample documents:</p>
+                <div class="row">
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="loadSample('invoice')">
+                            <i class="bi bi-receipt"></i><br>
+                            Sample Invoice
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="loadSample('contract')">
+                            <i class="bi bi-file-text"></i><br>
+                            Sample Contract
+                        </button>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="loadSample('form')">
+                            <i class="bi bi-card-list"></i><br>
+                            Sample Form
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features -->
+        <div class="row mt-4">
+            <div class="col-md-4">
+                <div class="text-center">
+                    <i class="bi bi-eye text-primary icon-large"></i>
+                    <h6 class="mt-2">OCR Processing</h6>
+                    <small class="text-muted">Extract text from images and PDFs</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <i class="bi bi-diagram-3 text-success icon-large"></i>
+                    <h6 class="mt-2">ML Classification</h6>
+                    <small class="text-muted">Traditional ML document classification</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="text-center">
+                    <i class="bi bi-robot text-warning icon-large"></i>
+                    <h6 class="mt-2">GPT-4 Model Extraction</h6>
+                    <small class="text-muted">Intelligent data extraction</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('uploadForm').onsubmit = function() {
+    document.getElementById('processing').style.display = 'block';
+};
+
+function loadSample(type) {
+    // In a real app, you'd load sample files
+    alert(`Loading sample ${type} document...`);
+}
+</script>
+{% endblock %}

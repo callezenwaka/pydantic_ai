@@ -1,36 +1,76 @@
-# Pydantic AI Agent Demo
-This project demonstrates building an AI agent using the Pydantic AI framework. The agent accesses MCP servers and tools to fetch and summarize content from docs.replit.com/updates.
+# Document AI/IDP - PoC
 
-## Features
-- Uses Pydantic AI for type-safe agent development
-- Integrates with MCP servers for content fetching
-- Includes a custom tool for timestamp generation
-- Runs asynchronously for better performance
+🚀 **Upload documents, extract structured data with AI**
+
+**Features**: PDF/image OCR • Smart classification • Local AI processing • Auto-fallback (Ollama → HuggingFace → OpenAI)
+
+```
+document-ai/
+├── src/
+│   └── document_ai/           # Your main package
+│       ├── __init__.py        # Makes it a package
+│       ├── app.py            # FastAPI app
+│       ├── config.py         # Configuration  
+│       ├── processor.py      # Document processor
+│       └── utils.py          # Utilities
+├── templates/                 # HTML templates (outside src)
+├── static/                    # CSS/JS (outside src)  
+├── uploads/                   # File uploads (outside src)
+├── tests/                     # Tests (outside src)
+├── pyproject.toml            # Modern config
+└── README.md
+```
 
 ## Quick Start
-1. Add your OpenAI API key to the Secrets tab in your Repl
-2. Click the Run button to start the application
-3. The agent will fetch and summarize content from docs.replit.com/updates
 
-```
-I retrieved the content from docs.replit.com/updates on 2025-04-20 15:18:24. Here is a summary of the latest updates:
-1. Smarter Integrations Matching: The Agent now better identifies when to add external tools and services in new chats for more accurate app building.
-2. Faster AI Responses: AI systems have been enhanced to provide near-instant interactions and smoother conversations.
-3. Streamlined Agent Progress UX: The "Preview" pane now replaces the "Progress" and "Webview" panes, helping users stay focused while building apps, with added tips through a floating banner.
-4. Clearer Checkpoint Titles: Checkpoints have concise titles for easier understanding of project history, with technical details preserved in commit descriptions.
-5. Bulk Organization Invites: Teams can invite multiple users to their Organization at once, improving collaboration and onboarding.
-6. Enhanced App Restoration: Organization admins can view recently deleted Apps with a new CLUI command to quickly recover projects.
-7. Dev Preview URL Education: An educational banner helps users understand the purpose of .replit.dev URLs when opened in a new tab.
-8. Better File Uploads: File uploads have been made more reliable and easier with a larger drag-and-drop area.
-If you need more detailed information on any specific update, please let me know!
+### 1. Install Ollama
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+ollama serve
+ollama pull llama2
 ```
 
-## Dependencies
-All required packages are automatically installed through pyproject.toml:
+### 2. Install Dependencies
+```bash
+pip install -e .
+```
 
-- pydantic-ai-slim
-- pydantic-ai-slim[mcp]
-- pydantic-ai-slim[openai]
+### 3. Run
+```bash
+uvicorn snap_ai.app:app --reload --host 0.0.0.0 --port 8000
+uvicorn app:app --reload --host 0.0.0.0 --port 8000 # or python3 app.py && open http://localhost:8000
+# Visit http://localhost:8000
+```
 
-## Development
-The project is ready for development in Replit. Use the Replit Assistant to help modify the code or add new features. When ready, use Replit's Deployment feature to deploy your application.
+## How It Works
+
+1. **Upload** document (PDF/TXT/image)
+2. **Extract** text with OCR
+3. **Classify** document type (invoice/contract/form)
+4. **Extract** structured data with AI
+5. **Display** results with confidence scoring
+
+## Sample Output
+```json
+{
+  "document_type": "invoice",
+  "confidence_level": "high", 
+  "extracted_data": {
+    "vendor_name": "ABC Corp",
+    "invoice_number": "INV-001",
+    "total_amount": 1250.00
+  }
+}
+```
+
+## Configuration (Optional)
+```bash
+# .env file
+OLLAMA_MODEL=llama2
+OPENAI_API_KEY=your-key  # Optional fallback
+```
+
+## AI Fallback Chain
+🦙 **Ollama** (local) → 🤗 **HuggingFace** (local) → 🤖 **OpenAI** (API)
+
+*System automatically uses the best available method.*
