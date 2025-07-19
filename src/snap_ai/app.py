@@ -3,10 +3,8 @@
 FastAPI Web Application with File Upload for Document AI
 """
 
-import os
 import json
 import uuid
-import asyncio
 import uvicorn
 from pathlib import Path
 from typing import Optional
@@ -48,7 +46,6 @@ async def lifespan(app: FastAPI):
     # Shutdown (cleanup if needed)
     print("🔄 Shutting down Document AI processor...")
 
-
 # Initialize FastAPI with lifespan
 app = FastAPI(
     title=config.APP_TITLE, 
@@ -60,12 +57,10 @@ app = FastAPI(
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-
 @app.get("/", response_class=HTMLResponse)
 async def upload_page(request: Request):
     """Main upload page"""
     return templates.TemplateResponse("upload.html", {"request": request})
-
 
 @app.post("/upload", response_class=HTMLResponse)
 async def upload_file(
@@ -127,7 +122,6 @@ async def upload_file(
             "error": str(e)
         })
 
-
 @app.post("/api/process")
 async def api_process_document(file: UploadFile = File(...)):
     """API endpoint for document processing"""
@@ -157,7 +151,6 @@ async def api_process_document(file: UploadFile = File(...)):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.get("/api/health")
 async def health_check():
