@@ -65,11 +65,8 @@ async def upload_page(request: Request):
 @app.post("/upload", response_class=HTMLResponse)
 async def upload_file(
     request: Request,
-    file: UploadFile = File(...),
-    process_type: str = Form(default="auto")
+    file: UploadFile = File(...)
 ):
-    """Handle file upload and process document"""
-    
     if not processor:
         raise HTTPException(status_code=500, detail="Processor not initialized")
     
@@ -78,9 +75,17 @@ async def upload_file(
         if not file.filename:
             raise HTTPException(status_code=400, detail="No file selected")
         
+        # Handle camera captures (they come as captured_image.jpg)
+        is_camera_capture = file.filename.startswith('captured_image')
+        
         # Check file type
         allowed_types = ['.txt', '.pdf', '.png', '.jpg', '.jpeg']
         file_ext = Path(file.filename).suffix.lower()
+        
+        # For camera captures, ensure it's treated as jpeg
+        if is_camera_capture and not file_ext:
+            file_ext = '.jpg'
+            
         if file_ext not in allowed_types:
             raise HTTPException(
                 status_code=400, 

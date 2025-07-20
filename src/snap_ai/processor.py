@@ -10,6 +10,8 @@ import requests
 from typing import Dict, Any, Tuple
 from enum import Enum
 
+from src.snap_ai.prompt_loader import PromptLoader
+
 # Traditional ML
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
@@ -32,6 +34,7 @@ class DocumentType(Enum):
     INVOICE = "invoice"
     CONTRACT = "contract"
     FORM = "form"
+    RECEIPT = "receipt"  # NEW
     UNKNOWN = "unknown"
 
 
@@ -46,6 +49,11 @@ class Processor:
 
     def __init__(self):
         self.config = Config()
+
+        # Initialize prompt loader (NEW)
+        self.prompt_loader = PromptLoader("prompts.yaml")
+        print(f"✅ Loaded prompts for document types: {self.prompt_loader.get_available_document_types()}")
+        
 
         # Initialize traditional ML classifier
         self.classifier = self._setup_classifier()
@@ -125,29 +133,34 @@ class Processor:
     def _setup_classifier(self) -> Pipeline:
         """Setup traditional ML classifier"""
 
-        # Sample training data
+        # Enhanced training data with receipts
         training_texts = [
+            # Invoices
             "Invoice Number INV-001 Total Amount $1500 Due Date 2024-01-15",
             "INVOICE Company ABC Total: $2300 Date: Jan 15 2024",
             "Bill Invoice #12345 Amount Due: $890 Payment Terms: Net 30",
+            
+            # Contracts  
             "This Agreement between Party A and Party B effective January 1 2024",
             "CONTRACT for services Term: 12 months Payment: Monthly",
             "Service Agreement Party obligations Terms and conditions",
+            
+            # Forms
             "Application Form Name: John Doe Address: 123 Main St Phone: 555-0123",
             "Registration Form Personal Information Company Department",
             "FORM Submit application Date of birth Emergency contact",
+            
+            # Receipts (NEW)
+            "Receipt Boots UK Total £2.50 Card Payment Thank you for shopping",
+            "RECEIPT Tesco Store 1234 Total: $15.67 Cash Paid",
+            "Thank you for your purchase Receipt Total Amount £25.00 Change £5.00",
         ]
 
         training_labels = [
-            "invoice",
-            "invoice",
-            "invoice",
-            "contract",
-            "contract",
-            "contract",
-            "form",
-            "form",
-            "form",
+            "invoice", "invoice", "invoice",     # Invoices
+            "contract", "contract", "contract",  # Contracts  
+            "form", "form", "form",             # Forms
+            "receipt", "receipt", "receipt",     # Receipts (NEW)
         ]
 
         # Create and train classifier
@@ -203,6 +216,9 @@ class Processor:
 
         processing_time = time.time() - start_time
 
+        # Get the actual model name being used
+        model_display_name = self._get_model_display_name()
+        
         result = {
             "document_type": doc_type,
             "ml_confidence": ml_confidence,
@@ -212,6 +228,7 @@ class Processor:
             "extracted_data": extracted_data,
             "processing_time": f"{processing_time:.2f}s",
             "extraction_method": self.extraction_method,
+            "model_display_name": model_display_name,  # ← New field
             "raw_text": text,
         }
 
@@ -229,46 +246,10 @@ class Processor:
         return prediction, confidence
 
     def _extract_with_ollama(self, text: str, doc_type: str) -> Dict[str, Any]:
-        """Extract using Ollama"""
+        """Extract using Ollama with centralized prompts"""
 
-        prompts = {
-            "invoice": f"""Extract invoice information from this text and return ONLY valid JSON:
-
-            Text: {text}
-
-            Extract these exact fields:
-            - vendor_name: company name
-            - invoice_number: invoice number  
-            - total_amount: total amount (number only)
-            - invoice_date: date
-            - customer_info: customer details
-
-            Return JSON format:""",
-                        "contract": f"""Extract contract information from this text and return ONLY valid JSON:
-
-            Text: {text}
-
-            Extract these exact fields:
-            - parties: list of contract parties
-            - contract_type: type of contract
-            - effective_date: start date
-            - key_terms: important terms
-
-            Return JSON format:""",
-                        "form": f"""Extract form information from this text and return ONLY valid JSON:
-
-            Text: {text}
-
-            Extract these exact fields:
-            - form_type: type of form
-            - applicant_name: person's name
-            - contact_info: contact details
-            - form_fields: other form data
-
-            Return JSON format:""",
-        }
-
-        prompt = prompts.get(doc_type, prompts["form"])
+        # Get formatted prompt from prompt loader
+        prompt = self.prompt_loader.format_prompt(doc_type, "ollama", text)
 
         try:
             response = requests.post(
@@ -292,9 +273,10 @@ class Processor:
             return {"error": str(e), "raw_response": ""}
 
     def _extract_with_huggingface(self, text: str, doc_type: str) -> Dict[str, Any]:
-        """Extract using Hugging Face"""
+        """Extract using Hugging Face with centralized prompts"""
 
-        prompt = f"Extract {doc_type} information from: {text[:300]}...\nJSON:"
+        # Get formatted prompt from prompt loader
+        prompt = self.prompt_loader.format_prompt(doc_type, "huggingface", text)
 
         try:
             result = self.hf_generator(
@@ -308,51 +290,13 @@ class Processor:
             return {"error": str(e), "raw_response": ""}
 
     def _extract_with_gpt4(self, text: str, doc_type: str) -> Dict[str, Any]:
-        """GPT-4 intelligent extraction using LangChain (YOUR ORIGINAL METHOD)"""
+        """GPT-4 intelligent extraction using LangChain with centralized prompts"""
 
-        # Document-specific prompts
-        prompts = {
-            "invoice": """
-            Extract invoice information from this text and return JSON:
-            - vendor_name: company name
-            - invoice_number: invoice number  
-            - total_amount: total amount (number only)
-            - invoice_date: date
-            - customer_info: customer details
-            
-            Text: {text}
-            
-            Return only valid JSON:
-            """,
-            "contract": """
-            Extract contract information from this text and return JSON:
-            - parties: list of contract parties
-            - contract_type: type of contract
-            - effective_date: start date
-            - key_terms: important terms
-            
-            Text: {text}
-            
-            Return only valid JSON:
-            """,
-            "form": """
-            Extract form information from this text and return JSON:
-            - form_type: type of form
-            - applicant_name: person's name
-            - contact_info: contact details
-            - form_fields: other form data
-            
-            Text: {text}
-            
-            Return only valid JSON:
-            """,
-        }
-
-        # Get appropriate prompt
-        prompt_template = prompts.get(doc_type, prompts["form"])
+        # Get prompt template from prompt loader
+        prompt_template_str = self.prompt_loader.get_prompt(doc_type, "openai")
 
         # Create LangChain prompt and chain
-        prompt = PromptTemplate(template=prompt_template, input_variables=["text"])
+        prompt = PromptTemplate(template=prompt_template_str, input_variables=["text"])
         chain = LLMChain(llm=self.llm, prompt=prompt)
 
         try:
@@ -409,3 +353,37 @@ class Processor:
             return ConfidenceLevel.MEDIUM
         else:
             return ConfidenceLevel.LOW
+
+    def _get_model_display_name(self) -> str:
+        """Get display name for the AI model being used"""
+        if self.extraction_method == "ollama":
+            # Handle different Ollama models
+            model_mapping = {
+                "llama2": "Llama 2",
+                "mistral": "Mistral", 
+                "codellama": "Code Llama",
+                "llama3": "Llama 3"
+            }
+            return model_mapping.get(self.ollama_model, self.ollama_model.title())
+            
+        elif self.extraction_method == "huggingface":
+            # Handle different HF models
+            model_name = self.config.HF_MODEL.split('/')[-1]
+            model_mapping = {
+                "DialoGPT-small": "DialoGPT Small",
+                "DialoGPT-medium": "DialoGPT Medium",
+                "distilbert-base-uncased": "DistilBERT"
+            }
+            return model_mapping.get(model_name, model_name)
+            
+        elif self.extraction_method == "openai":
+            # Handle different OpenAI models
+            model_mapping = {
+                "gpt-4": "GPT-4",
+                "gpt-3.5-turbo": "GPT-3.5 Turbo",
+                "gpt-4-turbo": "GPT-4 Turbo"
+            }
+            return model_mapping.get(self.config.MODEL_NAME, self.config.MODEL_NAME)
+            
+        else:
+            return "Unknown Model"

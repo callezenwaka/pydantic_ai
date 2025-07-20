@@ -1,16 +1,16 @@
-<!-- # templates/upload.html -->
+<!-- templates/upload.html -->
 {% extends "base.html" %}
 
-{% block title %}Upload Document - Document AI Demo{% endblock %}
+{% block title %}Upload Document - Snap AI{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8">
+    <div class="col-md-10">
         <div class="card shadow">
             <div class="card-header bg-primary text-white">
                 <h4 class="mb-0">
                     <i class="bi bi-cloud-upload"></i>
-                    Upload Document for AI Processing
+                    Upload or Capture Document for AI Processing
                 </h4>
             </div>
             <div class="card-body">
@@ -21,33 +21,87 @@
                 </div>
                 {% endif %}
 
-                <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
-                    <div class="mb-3">
-                        <label for="file" class="form-label">Select Document</label>
-                        <input type="file" class="form-control" id="file" name="file" 
-                               accept=".txt,.pdf,.png,.jpg,.jpeg" required>
-                        <div class="form-text">
-                            Supported formats: TXT, PDF, PNG, JPG, JPEG
+                <!-- Upload Method Selection -->
+                <div class="mb-4">
+                    <div class="row text-center">
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-outline-primary w-100 mb-2" id="fileUploadBtn">
+                                <i class="bi bi-folder"></i><br>
+                                Upload from Device
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-outline-success w-100 mb-2" id="cameraBtn">
+                                <i class="bi bi-camera"></i><br>
+                                Take Photo
+                            </button>
                         </div>
                     </div>
+                </div>
 
-                    <div class="mb-3">
-                        <label for="process_type" class="form-label">Processing Type</label>
-                        <select class="form-select" id="process_type" name="process_type">
-                            <option value="auto">Auto-detect document type</option>
-                            <option value="invoice">Force process as Invoice</option>
-                            <option value="contract">Force process as Contract</option>
-                            <option value="form">Force process as Form</option>
-                        </select>
-                    </div>
+                <!-- File Upload Form (Default) -->
+                <div id="fileUploadSection">
+                    <form action="/upload" method="post" enctype="multipart/form-data" id="uploadForm">
+                        <div class="mb-3">
+                            <label for="file" class="form-label">Select Document</label>
+                            <input type="file" class="form-control" id="file" name="file" 
+                                   accept=".txt,.pdf,.png,.jpg,.jpeg" required>
+                            <div class="form-text">
+                                Supported formats: TXT, PDF, PNG, JPG, JPEG
+                            </div>
+                        </div>
 
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary btn-lg">
-                            <i class="bi bi-cpu"></i>
-                            Process with AI
-                        </button>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-cpu"></i>
+                                Process with AI
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Camera Capture Section (Hidden by default) -->
+                <div id="cameraSection" style="display: none;">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <video id="video" width="100%" height="300" autoplay playsinline webkit-playsinline moz-playsinline class="border rounded"></video>
+                                <canvas id="canvas" style="display: none;"></canvas>
+                            </div>
+                            
+                            <div class="text-center mb-3">
+                                <button type="button" class="btn btn-success me-2" id="captureBtn">
+                                    <i class="bi bi-camera-fill"></i>
+                                    Capture Photo
+                                </button>
+                                <button type="button" class="btn btn-secondary me-2" id="retakeBtn" style="display: none;">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                    Retake
+                                </button>
+                                <button type="button" class="btn btn-danger" id="stopCameraBtn">
+                                    <i class="bi bi-x-circle"></i>
+                                    Stop Camera
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Captured Image</label>
+                                <div id="capturedImageContainer" class="border rounded p-3 text-center min-height-200">
+                                    <p class="text-muted">No image captured yet</p>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-primary btn-lg" id="processCapturedBtn" disabled>
+                                    <i class="bi bi-cpu"></i>
+                                    Process Captured Image
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </form>
+                </div>
 
                 <div id="processing" class="text-center mt-3" style="display: none;">
                     <div class="spinner-border text-primary" role="status">
@@ -58,7 +112,7 @@
             </div>
         </div>
 
-        <!-- Demo Section -->
+        <!-- Demo Section (Keep existing) -->
         <div class="card mt-4">
             <div class="card-header">
                 <h5 class="mb-0">
@@ -70,19 +124,19 @@
                 <p>No file to upload? Try these sample documents:</p>
                 <div class="row">
                     <div class="col-md-4">
-                        <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="loadSample('invoice')">
+                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="loadSample('invoice')">
                             <i class="bi bi-receipt"></i><br>
                             Sample Invoice
                         </button>
                     </div>
                     <div class="col-md-4">
-                        <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="loadSample('contract')">
+                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="loadSample('contract')">
                             <i class="bi bi-file-text"></i><br>
                             Sample Contract
                         </button>
                     </div>
                     <div class="col-md-4">
-                        <button type="button" class="btn btn-outline-secondary btn-sm w-100" onclick="loadSample('form')">
+                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="loadSample('form')">
                             <i class="bi bi-card-list"></i><br>
                             Sample Form
                         </button>
@@ -91,26 +145,33 @@
             </div>
         </div>
 
-        <!-- Features -->
+        <!-- Features (Keep existing but update) -->
         <div class="row mt-4">
-            <div class="col-md-4">
+            <div class="col-md-3">
+                <div class="text-center">
+                    <i class="bi bi-camera text-info icon-large"></i>
+                    <h6 class="mt-2">Camera Capture</h6>
+                    <small class="text-muted">Take photos directly in browser</small>
+                </div>
+            </div>
+            <div class="col-md-3">
                 <div class="text-center">
                     <i class="bi bi-eye text-primary icon-large"></i>
                     <h6 class="mt-2">OCR Processing</h6>
                     <small class="text-muted">Extract text from images and PDFs</small>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="text-center">
                     <i class="bi bi-diagram-3 text-success icon-large"></i>
                     <h6 class="mt-2">ML Classification</h6>
                     <small class="text-muted">Traditional ML document classification</small>
                 </div>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="text-center">
                     <i class="bi bi-robot text-warning icon-large"></i>
-                    <h6 class="mt-2">GPT-4 Model Extraction</h6>
+                    <h6 class="mt-2">AI Extraction</h6>
                     <small class="text-muted">Intelligent data extraction</small>
                 </div>
             </div>
@@ -121,13 +182,155 @@
 
 {% block scripts %}
 <script>
-document.getElementById('uploadForm').onsubmit = function() {
+let stream = null;
+let capturedBlob = null;
+
+// UI Element References
+const fileUploadBtn = document.getElementById('fileUploadBtn');
+const cameraBtn = document.getElementById('cameraBtn');
+const fileUploadSection = document.getElementById('fileUploadSection');
+const cameraSection = document.getElementById('cameraSection');
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const captureBtn = document.getElementById('captureBtn');
+const retakeBtn = document.getElementById('retakeBtn');
+const stopCameraBtn = document.getElementById('stopCameraBtn');
+const processCapturedBtn = document.getElementById('processCapturedBtn');
+const capturedImageContainer = document.getElementById('capturedImageContainer');
+const uploadForm = document.getElementById('uploadForm');
+
+// Toggle between file upload and camera
+fileUploadBtn.addEventListener('click', () => {
+    fileUploadSection.style.display = 'block';
+    cameraSection.style.display = 'none';
+    stopCamera();
+    fileUploadBtn.classList.add('btn-primary');
+    fileUploadBtn.classList.remove('btn-outline-primary');
+    cameraBtn.classList.add('btn-outline-success');
+    cameraBtn.classList.remove('btn-success');
+});
+
+cameraBtn.addEventListener('click', () => {
+    fileUploadSection.style.display = 'none';
+    cameraSection.style.display = 'block';
+    startCamera();
+    cameraBtn.classList.add('btn-success');
+    cameraBtn.classList.remove('btn-outline-success');
+    fileUploadBtn.classList.add('btn-outline-primary');
+    fileUploadBtn.classList.remove('btn-primary');
+});
+
+// Camera functionality
+async function startCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: { ideal: 'environment' }, // Try to use back camera
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+            } 
+        });
+        video.srcObject = stream;
+        captureBtn.disabled = false;
+    } catch (err) {
+        console.error('Error accessing camera:', err);
+        alert('Unable to access camera. Please ensure you have granted camera permissions.');
+    }
+}
+
+function stopCamera() {
+    if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+        video.srcObject = null;
+    }
+}
+
+// Capture photo
+captureBtn.addEventListener('click', () => {
+    const context = canvas.getContext('2d');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    context.drawImage(video, 0, 0);
+    
+    canvas.toBlob((blob) => {
+        capturedBlob = blob;
+        
+        // Display captured image
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(blob);
+        img.style.width = '100%';
+        img.classList.add('rounded');
+        
+        capturedImageContainer.innerHTML = '';
+        capturedImageContainer.appendChild(img);
+        
+        // Enable process button
+        processCapturedBtn.disabled = false;
+        retakeBtn.style.display = 'inline-block';
+        captureBtn.textContent = 'Captured!';
+        captureBtn.disabled = true;
+    }, 'image/jpeg', 0.8);
+});
+
+// Retake photo
+retakeBtn.addEventListener('click', () => {
+    capturedImageContainer.innerHTML = '<p class="text-muted">No image captured yet</p>';
+    processCapturedBtn.disabled = true;
+    retakeBtn.style.display = 'none';
+    captureBtn.textContent = 'Capture Photo';
+    captureBtn.disabled = false;
+    capturedBlob = null;
+});
+
+// Stop camera
+stopCameraBtn.addEventListener('click', () => {
+    stopCamera();
+    fileUploadBtn.click(); // Switch back to file upload
+});
+
+// Process captured image
+processCapturedBtn.addEventListener('click', async () => {
+    if (!capturedBlob) {
+        alert('No image captured');
+        return;
+    }
+    
+    document.getElementById('processing').style.display = 'block';
+    
+    const formData = new FormData();
+    formData.append('file', capturedBlob, 'captured_image.jpg');
+    
+    try {
+        const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            const html = await response.text();
+            document.body.innerHTML = html;
+        } else {
+            throw new Error('Processing failed');
+        }
+    } catch (error) {
+        document.getElementById('processing').style.display = 'none';
+        alert('Error processing image: ' + error.message);
+    }
+});
+
+// Regular file upload form submission
+uploadForm.onsubmit = function() {
     document.getElementById('processing').style.display = 'block';
 };
 
 function loadSample(type) {
-    // In a real app, you'd load sample files
     alert(`Loading sample ${type} document...`);
 }
+
+// Clean up on page unload
+window.addEventListener('beforeunload', () => {
+    stopCamera();
+});
 </script>
 {% endblock %}

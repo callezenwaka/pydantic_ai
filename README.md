@@ -42,6 +42,16 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8000 # or python3 app.py && open 
 # Visit http://localhost:8000
 ```
 
+### 4. Test on mobile
+```bash
+# Find your local IP
+ipconfig getifaddr en0  # Mac
+ip route get 1 | awk '{print $7}' # Linux
+
+# Access from mobile device:
+# https://YOUR_IP:8000
+```
+
 ## How It Works
 
 1. **Upload** document (PDF/TXT/image)
