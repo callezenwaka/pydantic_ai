@@ -34,7 +34,7 @@ class DocumentType(Enum):
     INVOICE = "invoice"
     CONTRACT = "contract"
     FORM = "form"
-    RECEIPT = "receipt"  # NEW
+    RECEIPT = "receipt"
     UNKNOWN = "unknown"
 
 
@@ -50,7 +50,7 @@ class Processor:
     def __init__(self):
         self.config = Config()
 
-        # Initialize prompt loader (NEW)
+        # Initialize prompt loader
         self.prompt_loader = PromptLoader("prompts.yaml")
         print(f"✅ Loaded prompts for document types: {self.prompt_loader.get_available_document_types()}")
         
@@ -150,7 +150,7 @@ class Processor:
             "Registration Form Personal Information Company Department",
             "FORM Submit application Date of birth Emergency contact",
             
-            # Receipts (NEW)
+            # Receipts
             "Receipt Boots UK Total £2.50 Card Payment Thank you for shopping",
             "RECEIPT Tesco Store 1234 Total: $15.67 Cash Paid",
             "Thank you for your purchase Receipt Total Amount £25.00 Change £5.00",
@@ -160,7 +160,7 @@ class Processor:
             "invoice", "invoice", "invoice",     # Invoices
             "contract", "contract", "contract",  # Contracts  
             "form", "form", "form",             # Forms
-            "receipt", "receipt", "receipt",     # Receipts (NEW)
+            "receipt", "receipt", "receipt",     # Receipts
         ]
 
         # Create and train classifier
@@ -207,6 +207,9 @@ class Processor:
 
         print(f"🤖 {self.extraction_method.title()} extraction completed")
 
+        # Step 2.5: Post-process extracted data
+        extracted_data = self._post_process_extracted_data(extracted_data)
+
         # Step 3: Calculate overall confidence
         overall_confidence = self._calculate_confidence(ml_confidence, extracted_data)
         confidence_level = self._get_confidence_level(overall_confidence)
@@ -228,7 +231,7 @@ class Processor:
             "extracted_data": extracted_data,
             "processing_time": f"{processing_time:.2f}s",
             "extraction_method": self.extraction_method,
-            "model_display_name": model_display_name,  # ← New field
+            "model_display_name": self._get_model_display_name(),
             "raw_text": text,
         }
 
@@ -387,3 +390,61 @@ class Processor:
             
         else:
             return "Unknown Model"
+        
+    def _post_process_extracted_data(self, extracted_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Post-process extracted data to format complex fields better"""
+        
+        # Fields that might contain item lists
+        item_fields = ['items_purchased', 'line_items', 'items', 'products']
+        
+        for field in item_fields:
+            if field in extracted_data:
+                raw_value = extracted_data[field]
+                
+                # Try to parse JSON string to structured data
+                if isinstance(raw_value, str):
+                    try:
+                        import json
+                        import re
+                        
+                        # Try to extract JSON array from string
+                        match = re.search(r'\[.*\]', raw_value)
+                        if match:
+                            items_array = json.loads(match.group())
+                            
+                            # Convert to readable format
+                            if isinstance(items_array, list) and len(items_array) > 0:
+                                readable_items = []
+                                for item in items_array:
+                                    if isinstance(item, dict):
+                                        desc = item.get('description', item.get('name', 'Item'))
+                                        qty = item.get('quantity', item.get('qty', 1))
+                                        price = item.get('unit_price', item.get('price', ''))
+                                        total = item.get('total', item.get('amount', ''))
+                                        
+                                        item_str = f"{desc}"
+                                        if qty and qty != 1:
+                                            item_str += f" (Qty: {qty})"
+                                        if price:
+                                            item_str += f" @ {price}"
+                                        if total:
+                                            item_str += f" = {total}"
+                                        
+                                        readable_items.append(item_str)
+                                    else:
+                                        readable_items.append(str(item))
+                                
+                                # Store both formats
+                                extracted_data[field] = "\n".join([f"• {item}" for item in readable_items])
+                                extracted_data[f"{field}_raw"] = raw_value  # Keep original for API users
+                                
+                    except (json.JSONDecodeError, AttributeError):
+                        # If parsing fails, try simple cleanup
+                        if raw_value.startswith('[') and raw_value.endswith(']'):
+                            # Remove brackets and quotes, split by commas
+                            cleaned = raw_value.strip('[]').replace("'", "").replace('"', '')
+                            items = [item.strip() for item in cleaned.split(',') if item.strip()]
+                            if len(items) <= 5:  # Only if reasonable number
+                                extracted_data[field] = "\n".join([f"• {item}" for item in items[:5]])
+        
+        return extracted_data

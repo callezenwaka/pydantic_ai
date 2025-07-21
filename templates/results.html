@@ -120,16 +120,30 @@ Demo{% endblock %} {% block content %}
               </tr>
             </thead>
             <tbody>
-              {% for key, value in result.extracted_data.items() %} {% if key !=
-              'raw_response' %}
-              <tr>
-                <td><strong>{{ key.replace('_', ' ').title() }}</strong></td>
-                <td>
-                  {% if value is string and value|length > 100 %} {{
-                  value[0:100] }}... {% else %} {{ value }} {% endif %}
-                </td>
-              </tr>
-              {% endif %} {% endfor %}
+                {% for key, value in result.extracted_data.items() %}
+                    {% if key != 'raw_response' %}
+                    <tr>
+                        <td><strong>{{ key.replace('_', ' ').title() }}</strong></td>
+                        <td class="field-value">  <!-- ← ADD CLASS HERE -->
+                            {% if value is string and value|length > 100 %}
+                                <span class="truncated">{{ value[0:100] }}...</span>
+                                <span class="full-text d-none">{{ value }}</span>
+                                <button type="button" class="btn btn-link btn-sm p-0" onclick="toggleText(this)">
+                                    <small>Show more</small>
+                                </button>
+                            {% else %}
+                                {{ value }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-outline-primary btn-sm" title="Copy {{ key|replace('_', ' ') }} to clipboard" onclick="copyField('{{ key }}', '{{ value|replace("'", "\\'") }}')">
+                                <i class="bi bi-clipboard"></i>
+                                <span class="visually-hidden">Copy {{ key|replace('_', ' ') }} to clipboard</span>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
             </tbody>
           </table>
         </div>
@@ -283,7 +297,7 @@ Demo{% endblock %} {% block content %}
       </div>
     </div>
   </div>
-  {% endblock %} {% block scripts %}
+{% endblock %} {% block scripts %}
   <script>
     function downloadResults() {
         const results = {{ result|tojson }};
