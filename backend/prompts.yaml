@@ -1,0 +1,140 @@
+# prompts.yaml - Document Processing Prompts
+
+document_types:
+  invoice:
+    ollama: |
+      Extract invoice information from this text and return ONLY valid JSON:
+
+      Text: {text}
+
+      Extract these exact fields:
+      - vendor_name: company name
+      - invoice_number: invoice number  
+      - total_amount: total amount (number only)
+      - invoice_date: date
+      - customer_info: customer details
+
+      Return JSON format:
+    
+    openai: |
+      Extract invoice information from this text and return JSON:
+      - vendor_name: company name
+      - invoice_number: invoice number  
+      - total_amount: total amount (number only)
+      - invoice_date: date
+      - customer_info: customer details
+      
+      Text: {text}
+      
+      Return only valid JSON:
+
+    huggingface: "Extract invoice information from: {text_preview}...\nJSON:"
+
+  contract:
+    ollama: |
+      Extract contract information from this text and return ONLY valid JSON:
+
+      Text: {text}
+
+      Extract these exact fields:
+      - parties: list of contract parties
+      - contract_type: type of contract
+      - effective_date: start date
+      - key_terms: important terms
+
+      Return JSON format:
+    
+    openai: |
+      Extract contract information from this text and return JSON:
+      - parties: list of contract parties
+      - contract_type: type of contract
+      - effective_date: start date
+      - key_terms: important terms
+      
+      Text: {text}
+      
+      Return only valid JSON:
+
+    huggingface: "Extract contract information from: {text_preview}...\nJSON:"
+
+  form:
+    ollama: |
+      Extract form information from this text and return ONLY valid JSON:
+
+      Text: {text}
+
+      Extract these exact fields:
+      - form_type: type of form
+      - applicant_name: person's name
+      - contact_info: contact details
+      - form_fields: other form data
+
+      Return JSON format:
+    
+    openai: |
+      Extract form information from this text and return JSON:
+      - form_type: type of form
+      - applicant_name: person's name
+      - contact_info: contact details
+      - form_fields: other form data
+      
+      Text: {text}
+      
+      Return only valid JSON:
+
+    huggingface: "Extract form information from: {text_preview}...\nJSON:"
+
+  receipt:
+    ollama: |
+      Extract receipt information from this text and return ONLY valid JSON:
+
+      Text: {text}
+
+      Extract these exact fields:
+      - store_name: name of the store/retailer
+      - store_address: store location/address  
+      - receipt_number: transaction or receipt number
+      - total_amount: total amount paid (number only)
+      - purchase_date: date of purchase
+      - items_purchased: list of items bought
+      - payment_method: how payment was made (card/cash)
+      - server_name: staff member name (if shown)
+
+      Return JSON format:
+    
+    openai: |
+      Extract receipt information from this text and return JSON:
+      - store_name: name of the store/retailer
+      - store_address: store location/address
+      - receipt_number: transaction or receipt number
+      - total_amount: total amount paid (number only)
+      - purchase_date: date of purchase
+      - items_purchased: list of items bought
+      - payment_method: how payment was made (card/cash)
+      - server_name: staff member name (if shown)
+      
+      Text: {text}
+      
+      Return only valid JSON:
+
+    huggingface: "Extract receipt information from: {text_preview}...\nJSON:"
+
+# Default fallback prompt
+default:
+  ollama: |
+    Extract key information from this document and return ONLY valid JSON:
+
+    Text: {text}
+
+    Analyze the document and extract relevant fields based on the document type.
+    
+    Return JSON format:
+  
+  openai: |
+    Extract key information from this document and return JSON:
+    
+    Text: {text}
+    
+    Return only valid JSON:
+
+  huggingface: "Extract key information from: {text_preview}...\nJSON:"

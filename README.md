@@ -35,14 +35,25 @@ ollama pull llama2
 pip install -e .
 ```
 
-### 3. Run
+### 3. Test Ollama
 ```bash
+curl http://localhost:11434
+```
+
+### 4. Run
+```bash
+uvicorn src.snap_ai.main:app --reload --host 0.0.0.0 --port 8000
 uvicorn snap_ai.app:app --reload --host 0.0.0.0 --port 8000
 uvicorn app:app --reload --host 0.0.0.0 --port 8000 # or python3 app.py && open http://localhost:8000
 # Visit http://localhost:8000
 ```
 
-### 4. Test on mobile
+### 5. Test API endpoints
+```bash
+curl http://localhost:8000/api/health
+```
+
+### 6. Test on mobile
 ```bash
 # Find your local IP
 ipconfig getifaddr en0  # Mac
@@ -77,7 +88,8 @@ ip route get 1 | awk '{print $7}' # Linux
 ```bash
 # .env file
 OLLAMA_MODEL=llama2
-OPENAI_API_KEY=your-key  # Optional fallback
+HUGGING_FACE_MODEL=model-name
+OPENAI_API_KEY=your-key # Optional fallback
 ```
 
 ## AI Fallback Chain

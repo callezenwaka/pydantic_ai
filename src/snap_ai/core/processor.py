@@ -1,4 +1,4 @@
-# processor.py
+# src/snap_ai/core/processor.py
 """
 Minimal Document AI/IDP System - Proof of Concept
 Combines OCR + Traditional ML + Local AI for document understanding
@@ -11,6 +11,8 @@ from typing import Dict, Any, Tuple
 from enum import Enum
 
 from src.snap_ai.prompt_loader import PromptLoader
+from src.snap_ai.config import Config
+from ..models.document import DocumentType, ConfidenceLevel, ExtractionMethod
 
 # Traditional ML
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -26,23 +28,6 @@ try:
     LANGCHAIN_AVAILABLE = True
 except ImportError:
     LANGCHAIN_AVAILABLE = False
-
-from src.snap_ai.config import Config
-
-
-class DocumentType(Enum):
-    INVOICE = "invoice"
-    CONTRACT = "contract"
-    FORM = "form"
-    RECEIPT = "receipt"
-    UNKNOWN = "unknown"
-
-
-class ConfidenceLevel(Enum):
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
-
 
 class Processor:
     """Main Document AI processor combining traditional ML + Local AI"""
@@ -231,7 +216,7 @@ class Processor:
             "extracted_data": extracted_data,
             "processing_time": f"{processing_time:.2f}s",
             "extraction_method": self.extraction_method,
-            "model_display_name": self._get_model_display_name(),
+            "model_display_name": model_display_name,
             "raw_text": text,
         }
 
@@ -448,3 +433,41 @@ class Processor:
                                 extracted_data[field] = "\n".join([f"• {item}" for item in items[:5]])
         
         return extracted_data
+
+    def get_supported_document_types(self) -> list:
+        """Get list of supported document types"""
+        if hasattr(self, 'prompt_loader'):
+            return self.prompt_loader.get_available_document_types()
+        else:
+            return ["invoice", "contract", "form", "receipt"]
+    
+    def get_model_display_name(self) -> str:
+        """Get display name for the AI model being used"""
+        if self.extraction_method == "ollama":
+            model_mapping = {
+                "llama2": "Llama 2",
+                "mistral": "Mistral", 
+                "codellama": "Code Llama",
+                "llama3": "Llama 3"
+            }
+            return model_mapping.get(self.ollama_model, self.ollama_model.title())
+            
+        elif self.extraction_method == "huggingface":
+            model_name = self.config.HF_MODEL.split('/')[-1]
+            model_mapping = {
+                "DialoGPT-small": "DialoGPT Small",
+                "DialoGPT-medium": "DialoGPT Medium",
+                "distilbert-base-uncased": "DistilBERT"
+            }
+            return model_mapping.get(model_name, model_name)
+            
+        elif self.extraction_method == "openai":
+            model_mapping = {
+                "gpt-4": "GPT-4",
+                "gpt-3.5-turbo": "GPT-3.5 Turbo",
+                "gpt-4-turbo": "GPT-4 Turbo"
+            }
+            return model_mapping.get(self.config.MODEL_NAME, self.config.MODEL_NAME)
+            
+        else:
+            return "Unknown Model"
